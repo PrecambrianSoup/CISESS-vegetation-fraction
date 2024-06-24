@@ -12,6 +12,7 @@ def read_readme(fn, doy):
         pattern = r"Minimum day of year \(DOY\) = (\d+)\nMaximum DOY = (\d+)"
         match = re.search(pattern, text)
     
+        # Checking if the doy are within the valid range as specified in the readme
         if match:
             min_doy = match.group(1)
             max_doy = match.group(2)
@@ -29,7 +30,7 @@ input_path = '/Users/katieyang/Downloads/LP05'
 
 # setting path for creation of a result csv in the input directory
 outdata = []
-outfn = os.path.join(input_path, 'FCOVER_Aggregation_Results.csv')
+output_path = os.path.join(input_path, 'FCOVER_Aggregation_Results.csv')
 
 # sets constants for the number of grid points and degrees of grid spacing
 nx = 43200*2        
@@ -44,12 +45,12 @@ for fn in os.listdir(input_path):
         fname2 = os.path.join(input_path, fn[0:-7]+'_README.TXT')
         
         # Extracts satellite, site, and starting date info from the file name
-        strsat = fn[10:13]
-        strsite = fn[14:18]
-        strdate = fn[19:27]
+        sat = fn[10:13]
+        site = fn[14:18]
+        date = fn[19:27]
         
         # Calculates the day of the year out of 365 days
-        date = datetime.strptime(strdate, '%Y%m%d')
+        date = datetime.strptime(date, '%Y%m%d')
         doy = date.timetuple().tm_yday
         
         # Checks if the date is within the valid range and skips to the next file if not
@@ -67,7 +68,7 @@ for fn in os.listdir(input_path):
         qfout = dataset.variables['QF_OUT'][:,:]
         cl = dataset.variables['CL_95'][:,:]
         
-        # Converting latitude and longitude into grid indices and determines the number of grid cells
+        # Converting latitude and longitude into grid indices and determines the number of unique grid cells
         iy = np.round((90-dx/2-lat)/dx)
         ix = np.round((lon*np.cos(lat*np.pi/180.0)-dx/2+180)/dx)
 
@@ -80,24 +81,24 @@ for fn in os.listdir(input_path):
         mask = (qfin == 0) & (qfout == 0) & (fc >= 0)
         
         for i in range(0,n):
-            # Find the number of pixels that have the same pixel index and filters to find ones that are unmasked
+            # Find the number of pixels that have the same pixel index and filters to find the number of valid pixels
             tmp1 = idx == idx_unq[i]
-            nall = np.count_nonzero(tmp1)
+            pixels = np.count_nonzero(tmp1)
             tmp2 = (idx == idx_unq[i]) & mask
-            nagg = np.count_nonzero(tmp2)
+            valid_pixels = np.count_nonzero(tmp2)
 
             # Calculates the percentage of valid pixels and aggregates if over half are valid
-            pagg = nagg*100.0/nall
+            percent_agg = valid_pixels*100.0/pixels
 
-            if pagg > 50:
+            if percent_agg > 50:
                 # Calculates the mean, standard deviation, and center longitude and latitude of the grid cell
                 agg_fc = np.mean(fc[tmp2])
                 std_fc = np.std(fc[tmp2])
-                lon0 = (idx_unq[i] % nx)*dx + dx/2 - 180
-                lat0 = 90-dx/2 - (idx_unq[i]/nx)*dx
+                lon = (idx_unq[i] % nx)*dx + dx/2 - 180
+                lat = 90-dx/2 - (idx_unq[i]/nx)*dx
                 
-                outdata.append([date, strsat, strsite, lat0, lon0, agg_fc, std_fc, nagg, pagg])
+                outdata.append([date, sat, site, lat, lon, agg_fc, std_fc, pixels, percent_agg])
 
-df = pd.DataFrame(outdata, columns = ['Date','Sat','Site','Lat','Lon','GrdFC500m','FCSTD','AggNum','AggPcnt'])
+df = pd.DataFrame(outdata, columns = ['Date','Sat','Site','Lat','Lon','FC500m','FCSTD','AggNum','AggPcnt'])
 
-df.to_csv(outfn, index=False, date_format='%Y-%m-%d')
+df.to_csv(output_path, index=False, date_format='%Y-%m-%d')
