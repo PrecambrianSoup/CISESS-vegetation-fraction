@@ -3,11 +3,13 @@ var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets
 
 // Match dataset based on latitude and longitude
 function matchDataset(feature) {
+  // Extract latitude and longitude from the ground data for matching
   var lat = ee.Number(feature.get('Lat'));
   var lon = ee.Number(feature.get('Lon'));
   
-  // Define a point at the latitude and longitude if valid
+  // Check if lat and lon are valid
   if (lat !== null && lon !== null) {
+    // Define a coordinate at the latitude and longitude
     var point = ee.Geometry.Point([lon, lat]);
     
     // Load the dataset for matching
@@ -16,19 +18,23 @@ function matchDataset(feature) {
       .filterDate('2017-05-01', '2017-05-31')
       .first();
     
-    // Extract the data value at the point
-    var value = dataset.reduceRegion({
-      reducer: ee.Reducer.mean(),
+    // Extract satellite data attributes using reduceRegion
+    var data = dataset.reduceRegion({
+      reducer: ee.Reducer.first(),
       geometry: point,
       scale: 500,
       maxPixels: 1e13
     });
     
-    // Return the feature with the added dataset value
-    return feature.set('matched_value', value);
-  } else {
-    // Print error if lat/lon are invalid
-    print('Invalid Lat/Lon for feature:', feature);
+    // Add matched satellite data to the feature properties
+    feature = feature.set('I1', data.get('I1'));
+    feature = feature.set('I2', data.get('I2'));
+    feature = feature.set('I3', data.get('I3'));
+    feature = feature.set('SolarZenith', data.get('SolarZenith'));
+    feature = feature.set('SolarAzimuth', data.get('SolarAzimuth'));
+    feature = feature.set('SensorZenith', data.get('SensorZenith'));
+    feature = feature.set('SensorAzimuth', data.get('SensorAzimuth'));
+    
     return feature;
   }
 }
@@ -46,5 +52,3 @@ Export.table.toDrive({
   description: 'matched_data_export',
   fileFormat: 'CSV'
 });
-
-print('Matching initiated')
