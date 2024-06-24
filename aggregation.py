@@ -37,7 +37,7 @@ dx = 360.0/nx
 dx_grid = 360/43200.0/2
         
 for fn in os.listdir(input_path):
-    # process the file if it is a GBOV netcdf file and is native resolution (not 300M)
+    # process the file if it is a GBOV netcdf file and is native resolution
     if ('GBOV' in fn) and ('300M' not in fn) and ('20M' not in fn) and fn.endswith(".nc"):
         print(fn)
         fname = os.path.join(input_path, fn)
@@ -48,21 +48,14 @@ for fn in os.listdir(input_path):
         strsite = fn[14:18]
         strdate = fn[19:27]
         
-        # Calculates the day of the year out of 365 days and shifts it to the start of an 8-day period
+        # Calculates the day of the year out of 365 days
         date = datetime.strptime(strdate, '%Y%m%d')
         doy = date.timetuple().tm_yday
-        doy_8d = int(doy/8)*8 + 1
         
         # Checks if the date is within the valid range and skips to the next file if not
         doyflag = read_readme(fname2, doy)
         if doyflag:
             continue
-
-        # Converts the date to YYYY-DOY format
-        strdoy = '%03d' % doy_8d        
-        dir_date = datetime.strptime(strdate[0:4] + "-" + strdoy, "%Y-%j").strftime("%Y.%m.%d")
-
-        #GLASS01E01.V60.A2021001.h00v08.2022139.hdf
 
         # Extracting latitude, longitude, FCOVER, quality flag, and 95% confidence interval data
         dataset = nc(fname)
@@ -103,9 +96,8 @@ for fn in os.listdir(input_path):
                 lon0 = (idx_unq[i] % nx)*dx + dx/2 - 180
                 lat0 = 90-dx/2 - (idx_unq[i]/nx)*dx
                 
-                outdata.append([strdate, strsat, strsite, lat0, lon0, agg_fc, std_fc, nagg, pagg])
-
+                outdata.append([date, strsat, strsite, lat0, lon0, agg_fc, std_fc, nagg, pagg])
 
 df = pd.DataFrame(outdata, columns = ['Date','Sat','Site','Lat','Lon','GrdFC500m','FCSTD','AggNum','AggPcnt'])
 
-df.to_csv(outfn,index=False)
+df.to_csv(outfn, index=False, date_format='%Y-%m-%d')
