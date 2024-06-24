@@ -1,11 +1,32 @@
 // Load the uploaded CSV file
-var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets/FCOVER_Aggregation_Results');
+var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets/FCOVER_Aggregation_Raw_Date');
+
+// Function to convert date from YYYYMMDD to YYYY-MM-DD
+function convertDate(dateStr) {
+  // Extract year, month, and day from the date string
+  var year = ee.String(dateStr).slice(0, 4);
+  var month = ee.String(dateStr).slice(4, 6);
+  var day = ee.String(dateStr).slice(6, 8);
+  
+  // Concatenate them into YYYY-MM-DD format
+  var formattedDate = ee.String(year).cat('-').cat(month).cat('-').cat(day);
+  
+  return formattedDate;
+}
 
 // Match dataset based on latitude and longitude
 function matchDataset(feature) {
   // Extract latitude and longitude from the ground data for matching
   var lat = ee.Number(feature.get('Lat'));
   var lon = ee.Number(feature.get('Lon'));
+  //var date = ee.Date(feature.get('Date'));
+  var dateStr = ee.String(feature.get('Date')); // Date in YYYYMMDD format
+  
+  // Convert date string to YYYY-MM-DD format
+  var formattedDateStr = convertDate(dateStr);
+  
+  // Convert formatted date string to ee.Date object
+  var date = ee.Date(formattedDateStr);
   
   // Check if lat and lon are valid
   if (lat !== null && lon !== null) {
@@ -15,7 +36,7 @@ function matchDataset(feature) {
     // Load the dataset for matching
     var dataset = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
       .filterBounds(point)
-      .filterDate('2017-05-01', '2017-05-31')
+      .filterDate(date, date.advance(1, 'day'))
       .first();
     
     // Extract satellite data attributes using reduceRegion
