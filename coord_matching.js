@@ -13,14 +13,27 @@ function matchDataset(feature) {
     // Define a coordinate at the latitude and longitude
     var point = ee.Geometry.Point([lon, lat]);
     
-    // Load the dataset for matching
-    var dataset = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
+    // Load the datasets for matching
+    var VIIRS = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
       .filterBounds(point)
       .filterDate(date, date.advance(1, 'day'))
       .first();
+
+    var MODIS = ee.ImageCollection("MODIS/061/MCD12Q1")
+      .filterBounds(point)
+      .filterDate('2001-01-01', '2022-01-01')
+      .first();
     
-    // Extract satellite data attributes
-    var data = dataset.reduceRegion({
+    // Extract satellite data
+    var VIIRSdata = VIIRS.reduceRegion({
+      reducer: ee.Reducer.first(),
+      geometry: point,
+      scale: 500,
+      maxPixels: 1e13
+    });
+
+    // Extract land cover type
+    var MODISdata = dataset.reduceRegion({
       reducer: ee.Reducer.first(),
       geometry: point,
       scale: 500,
@@ -28,20 +41,27 @@ function matchDataset(feature) {
     });
     
     // Add matched satellite data to the new dataset
-    feature = feature.set('I1', data.get('I1'));
-    feature = feature.set('I2', data.get('I2'));
-    feature = feature.set('I3', data.get('I3'));
-    feature = feature.set('SolarZenith', data.get('SolarZenith'));
-    feature = feature.set('SolarAzimuth', data.get('SolarAzimuth'));
-    feature = feature.set('SensorZenith', data.get('SensorZenith'));
-    feature = feature.set('SensorAzimuth', data.get('SensorAzimuth'));
-    feature = feature.set('QF1', data.get('QF1'));
-    feature = feature.set('QF2', data.get('QF2'));
-    feature = feature.set('QF3', data.get('QF3'));
-    feature = feature.set('QF4', data.get('QF4'));
-    feature = feature.set('QF5', data.get('QF5'));
-    feature = feature.set('QF6', data.get('QF6'));
-    feature = feature.set('QF7', data.get('QF7'));
+    feature = feature.set('I1', VIIRSdata.get('I1'));
+    feature = feature.set('I2', VIIRSdata.get('I2'));
+    feature = feature.set('I3', VIIRSdata.get('I3'));
+    feature = feature.set('SolarZenith', VIIRSdata.get('SolarZenith'));
+    feature = feature.set('SolarAzimuth', VIIRSdata.get('SolarAzimuth'));
+    feature = feature.set('SensorZenith', VIIRSdata.get('SensorZenith'));
+    feature = feature.set('SensorAzimuth', VIIRSdata.get('SensorAzimuth'));
+    feature = feature.set('QF1', VIIRSdata.get('QF1'));
+    feature = feature.set('QF2', VIIRSdata.get('QF2'));
+    feature = feature.set('QF3', VIIRSdata.get('QF3'));
+    feature = feature.set('QF4', VIIRSdata.get('QF4'));
+    feature = feature.set('QF5', VIIRSdata.get('QF5'));
+    feature = feature.set('QF6', VIIRSdata.get('QF6'));
+    feature = feature.set('QF7', VIIRSdata.get('QF7'));
+
+    // Add matched land cover type data to the new dataset
+    feature = feature.set('IGBP_land_class', data.get('LC_Type1'));
+    feature = feature.set('UMD_land_class', data.get('LC_Type2'));
+    feature = feature.set('LAI_land_class', data.get('LC_Type3'));
+    feature = feature.set('NPP_land_class', data.get('LC_Type4'));
+    feature = feature.set('PFT_land_class', data.get('LC_Type5'));
     
     return feature;
   }
