@@ -39,7 +39,7 @@ dx_grid = 360/43200.0/2
         
 for fn in os.listdir(input_path):
     # process the file if it is a GBOV netcdf file and is native resolution
-    if ('GBOV' in fn) and ('300M' not in fn) and ('20M' not in fn) and fn.endswith(".nc"):
+    if ('GBOV' in fn) and ('300M' not in fn) and fn.endswith(".nc"):
         print(fn)
         fname = os.path.join(input_path, fn)
         fname2 = os.path.join(input_path, fn[0:-7]+'_README.TXT')
