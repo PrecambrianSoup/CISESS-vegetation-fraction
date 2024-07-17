@@ -19,11 +19,12 @@ def read_readme(fn, doy):
             if (doy > int(min_doy)) and (doy < int(max_doy)):
                 return 0
             else:
+                # Skip files with dates that are out of range
                 print('DOY(%03d) Out of Range: %d-%d' % (doy, int(min_doy), int(max_doy)))
                 return 1
         else:
             print("DOY information not found in the text.")
-            return 1
+            return 0
 
 # setting path for the directory with NetCDF and README files
 input_path = '/Users/katieyang/Downloads/LP05'
@@ -42,7 +43,13 @@ for fn in os.listdir(input_path):
     if ('GBOV' in fn) and ('300M' not in fn) and fn.endswith(".nc"):
         print(fn)
         fname = os.path.join(input_path, fn)
-        fname2 = os.path.join(input_path, fn[0:-7]+'_README.TXT')
+
+        # Some files contain extra characters, so create the read me file name accordingly
+        before, match, after = fn.partition('_20M')
+        if match:
+            fname2 = os.path.join(input_path, before+'_README.TXT')
+        else:
+            fname2 = os.path.join(input_path, fn[0:-7]+'_README.TXT')
         
         # Extracts satellite, site, and starting date info from the file name
         sat = fn[10:13]
@@ -52,6 +59,7 @@ for fn in os.listdir(input_path):
         # Calculates the day of the year out of 365 days
         date = datetime.strptime(date, '%Y%m%d')
         doy = date.timetuple().tm_yday
+        print(f"Parsed date from filename: {date}")
         
         # Checks if the date is within the valid range and skips to the next file if not
         doyflag = read_readme(fname2, doy)
