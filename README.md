@@ -8,3 +8,5 @@ resolution to 500m pixel resolution
 coord_matching appends reflectance and geometry data to the aggregated data, matching data based on longitutde and latitude
 
 data_prep filters the matched data based on quality flags
+
+model constructs a random forest regression model trained on the filtered dataset
