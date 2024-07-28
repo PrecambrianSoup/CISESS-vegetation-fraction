@@ -1,28 +1,30 @@
-// Load the uploaded CSV file with FCOVER data
-var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets/FCOVER_Aggregation_New');
+// Load the uploaded CSV file
+var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets/FCOVER_Aggregation_Results');
 
 // Match dataset based on latitude and longitude
 function matchDataset(feature) {
   // Extract latitude and longitude from the ground data for matching
   var lat = ee.Number(feature.get('Lat'));
   var lon = ee.Number(feature.get('Lon'));
-  var date = ee.Date(feature.get('Date')); // Date in YYYY-MM-DD format
   
-  // Check if lat, lon, and date are valid
-  if (lat !== null && lon !== null && date !== null) {
+  // Check if lat and lon are valid
+  if (lat !== null && lon !== null) {
     // Define a coordinate at the latitude and longitude
     var point = ee.Geometry.Point([lon, lat]);
     
-    // Load the dataset for matching and filter to get an image
-    var dataset = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
+    // Load the datasets for matching
+    var VIIRSdataset = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
       .filterBounds(point)
-      .filterDate(date, date.advance(1, 'day'))
       .first();
     
-    // Ensure an image exists for that location and date
-    if (dataset) {
+    var IGBPdataset = ee.ImageCollection("MODIS/061/MCD12Q1")
+      .filterBounds(point)
+      .first();
+    
+    // Check if dataset is not null
+    if (VIIRSdataset) {
       // Extract satellite data attributes using reduceRegion
-      var data = dataset.reduceRegion({
+      var data = VIIRSdataset.reduceRegion({
         reducer: ee.Reducer.first(),
         geometry: point,
         scale: 500,
@@ -45,6 +47,17 @@ function matchDataset(feature) {
       feature = feature.set('QF6', data.get('QF6'));
       feature = feature.set('QF7', data.get('QF7'));
     }
+    
+    if (IGBPdataset){
+      var class_data = IGBPdataset.reduceRegion({
+        reducer: ee.Reducer.first(),
+        geometry: point,
+        scale: 500,
+        maxPixels: 1e13
+      });
+      
+      feature = feature.set('IGBP_LC', class_data.get('LC_Type1'));
+    }
   } 
   return feature;
 }
@@ -56,7 +69,7 @@ var matchedData = aggregatedData.map(matchDataset);
 var limitedData = matchedData.limit(40);
 print('Limited Data (first 40 elements):', limitedData);
 
-// Export the matched data to Google Drive
+// Export the matched data to your Google Drive
 Export.table.toDrive({
   collection: matchedData,
   description: 'matched_data_export',
