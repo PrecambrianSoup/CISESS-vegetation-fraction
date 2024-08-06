@@ -8,4 +8,4 @@ matching.js appends reflectance and geometry data to the aggregated data from wi
 
 data_prep.py filters the matched data based on quality flags and aggregation values.
 
-random_forest.py constructs a random forest regression model trained on the filtered dataset.
+random_forest_model.py, cubist_model.py, and svm_model.py construct respective machine learning models trained on the filtered dataset.
