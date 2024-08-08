@@ -1,64 +1,69 @@
 // Load the uploaded CSV file
 var aggregatedData = ee.FeatureCollection('projects/cisess-summer24-kyang/assets/FCOVER_Aggregation_Results');
 
-// Match dataset based on latitude and longitude
+// Match dataset based on latitude, longitude, and date
 function matchDataset(feature) {
-  // Extract latitude and longitude from the ground data for matching
+  // Extract latitude, longitude, and date from the ground data for matching
   var lat = ee.Number(feature.get('Lat'));
   var lon = ee.Number(feature.get('Lon'));
+  var dateString = feature.get('Date');
   
-  // Check if lat and lon are valid
-  if (lat !== null && lon !== null) {
-    // Define a coordinate at the latitude and longitude
-    var point = ee.Geometry.Point([lon, lat]);
+  // Convert dateString to ee.Date
+  var date = ee.Date(dateString); // Assuming date is in "YYYY-MM-DD" format
+  
+  // Define a coordinate at the latitude and longitude
+  var point = ee.Geometry.Point([lon, lat]);
+  
+  // Load the datasets for matching using filterDate
+  var VIIRScollection = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
+    .filterBounds(point)
+    .filterDate(date, date.advance(1, 'day'));
     
-    // Load the datasets for matching
-    var VIIRSdataset = ee.ImageCollection("NOAA/VIIRS/001/VNP09GA")
-      .filterBounds(point)
-      .first();
-    
-    var IGBPdataset = ee.ImageCollection("MODIS/061/MCD12Q1")
-      .filterBounds(point)
-      .first();
-    
-    // Check if dataset is not null
-    if (VIIRSdataset) {
-      // Extract satellite data attributes using reduceRegion
-      var data = VIIRSdataset.reduceRegion({
-        reducer: ee.Reducer.first(),
-        geometry: point,
-        scale: 500,
-        maxPixels: 1e13
-      });
-      
-      // Add matched satellite data to the feature properties
-      feature = feature.set('I1', data.get('I1'));
-      feature = feature.set('I2', data.get('I2'));
-      feature = feature.set('I3', data.get('I3'));
-      feature = feature.set('SolarZenith', data.get('SolarZenith'));
-      feature = feature.set('SolarAzimuth', data.get('SolarAzimuth'));
-      feature = feature.set('SensorZenith', data.get('SensorZenith'));
-      feature = feature.set('SensorAzimuth', data.get('SensorAzimuth'));
-      feature = feature.set('QF1', data.get('QF1'));
-      feature = feature.set('QF2', data.get('QF2'));
-      feature = feature.set('QF3', data.get('QF3'));
-      feature = feature.set('QF4', data.get('QF4'));
-      feature = feature.set('QF5', data.get('QF5'));
-      feature = feature.set('QF6', data.get('QF6'));
-      feature = feature.set('QF7', data.get('QF7'));
-    }
-    
-    if (IGBPdataset){
-      var class_data = IGBPdataset.reduceRegion({
-        reducer: ee.Reducer.first(),
-        geometry: point,
-        scale: 500,
-        maxPixels: 1e13
-      });
-      
-      feature = feature.set('IGBP_LC', class_data.get('LC_Type1'));
-    }
-  } 
+  var IGBPcollection = ee.ImageCollection("MODIS/061/MCD12Q1")
+    .filterBounds(point)
+    .filterDate('2020-01-01', '2022-12-31');
+  
+  var VIIRSdataset = VIIRScollection.first();
+  var IGBPdataset = IGBPcollection.first();
+  
+  // Define the default properties with null values
+  var defaultVIIRSProperties = {
+    'I1': null, 'I2': null, 'I3': null, 'SolarZenith': null,
+    'SolarAzimuth': null, 'SensorZenith': null, 'SensorAzimuth': null,
+    'QF1': null, 'QF2': null, 'QF3': null, 'QF4': null,
+    'QF5': null, 'QF6': null, 'QF7': null
+  };
+
+  var defaultIGBPProperties = {'LC_Type1': null};
+
+  // Set VIIRS data or default null values
+  var VIIRSProperties = ee.Dictionary(ee.Algorithms.If(
+    VIIRSdataset,
+    VIIRSdataset.reduceRegion({
+      reducer: ee.Reducer.first(),
+      geometry: point,
+      scale: 500,
+      maxPixels: 1e13
+    }).select(['I1', 'I2', 'I3', 'QF1', 'QF2', 'QF3', 'QF4', 'QF5', 'QF6', 'QF7', 'SolarZenith', 'SolarAzimuth', 'SensorZenith', 'SensorAzimuth']),
+    defaultVIIRSProperties
+  ));
+
+  feature = feature.setMulti(VIIRSProperties);
+
+  // Set IGBP data or default null values
+  var IGBPProperties = ee.Dictionary(ee.Algorithms.If(
+    IGBPdataset,
+    IGBPdataset.reduceRegion({
+      reducer: ee.Reducer.first(),
+      geometry: point,
+      scale: 500,
+      maxPixels: 1e13
+    }).select(['LC_Type1']),
+    defaultIGBPProperties
+  ));
+
+  feature = feature.setMulti(IGBPProperties);
+
   return feature;
 }
 
@@ -69,7 +74,7 @@ var matchedData = aggregatedData.map(matchDataset);
 var limitedData = matchedData.limit(40);
 print('Limited Data (first 40 elements):', limitedData);
 
-// Export the matched data to your Google Drive
+// Export the matched data to Google Drive
 Export.table.toDrive({
   collection: matchedData,
   description: 'matched_data_export',
