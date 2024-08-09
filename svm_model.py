@@ -19,13 +19,13 @@ y = data[target]
 # Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Standardize the features (important for SVM)
+# Standardize the features
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 # Train the Support Vector Regressor model
-model = SVR(kernel='rbf')  # You can try 'linear', 'poly', and 'sigmoid' kernels as well
+model = SVR(kernel='rbf')
 model.fit(X_train_scaled, y_train)
 
 # Predict on the test set
