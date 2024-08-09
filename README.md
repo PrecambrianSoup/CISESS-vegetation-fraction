@@ -1,6 +1,6 @@
 # CISESS-vegetation-fraction
 
-For machine learning estimation of vegetation fraction based on satellite and ground cover data:
+For comparing machine learning estimation of vegetation fraction based on satellite and ground cover data:
 
 aggregation.py takes an input repo containing netCDF files with FCOVER data and aggregates them from native resolution to 500m pixel resolution.
 
@@ -8,4 +8,4 @@ matching.js appends reflectance and geometry data to the aggregated data from wi
 
 data_prep.py filters the matched data based on quality flags and aggregation values.
 
-random_forest_model.py, cubist_model.py, and svm_model.py construct respective machine learning models trained on the filtered dataset.
+random_forest_model.py, cubist_model.py, svm_model.py, and neural_network.py construct respective machine learning models trained on the filtered dataset.
