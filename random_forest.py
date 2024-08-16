@@ -51,13 +51,27 @@ importances = model.feature_importances_
 feature_importances = pd.DataFrame({'Feature': features, 'Importance': importances})
 print(feature_importances.sort_values(by='Importance', ascending=False))
 
-# Plot a graph of the predicted values vs actual values
+# Plot a graph of the predicted values vs actual values with R-squared, MAE, and trendline
 plt.figure(figsize=(10, 6))
-plt.scatter(y_test, y_pred, alpha=0.7, edgecolors='w', linewidth=0.5)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2)
+plt.scatter(y_test, y_pred, alpha=0.7, edgecolors='w', linewidth=0.5, label='Data points')
+
+# Plot a trendline (line of best fit)
+z = np.polyfit(y_test, y_pred, 1)
+p = np.poly1d(z)
+plt.plot(y_test, p(y_test), "r--", lw=2, label='Trendline')
+
+# Plot the 1:1 line
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2, label='1:1 Line')
+
+# Annotate with R-squared and MAE
+plt.text(0.05, 0.95, f'$R^2$: {r2:.2f}\nMAE: {mae:.2f}', 
+         transform=plt.gca().transAxes, fontsize=12,
+         verticalalignment='top', bbox=dict(boxstyle='round,pad=0.3', edgecolor='black', facecolor='white'))
+
 plt.xlabel('Actual Values')
 plt.ylabel('Predicted Values')
-plt.title('Predictions vs Actual Values')
+plt.title('Random Forest Predictions vs Actual Values')
+plt.legend()
 plt.show()
 
 # Plot a histogram of the residual values
