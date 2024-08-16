@@ -11,6 +11,7 @@ df = pd.read_csv(input_csv_path)
 df = df.dropna(subset=['I1', 'I2', 'I3'])
 
 # Filtering by cloud (q1 bit 2-3), shadow (q2 bit 3), and snow (q7 bit 0) flags
+
 def confident_clear(qf1):
     if pd.isna(qf1):
         return False
@@ -29,10 +30,6 @@ def no_snow_present(qf7):
    qf7 = int(qf7)
    return (qf7 & 1) == 0
 
-# Apply the qf filters to the DataFrame and filter by aggregation amount/percentage
-filtered_df = df[df['QF1'].apply(confident_clear) & df['QF2'].apply(confident_clear) & df['QF7'].apply(no_snow_present)
-                 & (df['AggNum'] > 350) & (df['AggPcnt'] > 97)]
-
 # Divide the I1, I2, I3 columns by 1000 and the azimuth/zenith columns by 100 for scaling
 df['I1'] = df['I1'] / 1000
 df['I2'] = df['I2'] / 1000
@@ -42,7 +39,13 @@ df['SensorZenith'] = df['SensorZenith'] / 100
 df['SolarAzimuth'] = df['SolarAzimuth'] / 100
 df['SolarZenith'] = df['SolarZenith'] / 100
 
+# Apply the qf filters to the DataFrame and filter by aggregation amount/percentage
+AggNumMin = 150
+AggPcntMin = 70
+filtered_df = df[df['QF1'].apply(confident_clear) & df['QF2'].apply(confident_clear) & df['QF7'].apply(no_snow_present)
+                 & (df['AggNum'] > AggNumMin) & (df['AggPcnt'] > AggPcntMin)]
+
 # Save the filtered results into a new CSV file
 filtered_df.to_csv(output_csv_path, index=False)
 
-print(f"Filtered data has been saved to {output_csv_path}")
+print(f"Filtered data has been saved to {output_csv_path} with AggNumMin: {AggNumMin} AggPcntMin: {AggPcntMin}")
