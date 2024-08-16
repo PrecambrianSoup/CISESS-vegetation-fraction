@@ -32,6 +32,12 @@ model.fit(X_train, y_train, sample_weight=weights_train)
 # Predict on the test set
 y_pred = model.predict(X_test)
 
+# Save the trained model
+model_path = '/Users/katieyang/Downloads/LP05/FCOVER_RF_Model.joblib'
+dump(model, model_path)
+
+print(f"Model saved to {model_path}")
+
 # Evaluate the model
 mse = mean_squared_error(y_test, y_pred)
 mae = mean_absolute_error(y_test, y_pred)
@@ -45,12 +51,6 @@ importances = model.feature_importances_
 feature_importances = pd.DataFrame({'Feature': features, 'Importance': importances})
 print(feature_importances.sort_values(by='Importance', ascending=False))
 
-# Save the trained model
-model_path = '/Users/katieyang/Downloads/LP05/FCOVER_RF_Model.joblib'
-dump(model, model_path)
-
-print(f"Model saved to {model_path}")
-
 # Plot a graph of the predicted values vs actual values
 plt.figure(figsize=(10, 6))
 plt.scatter(y_test, y_pred, alpha=0.7, edgecolors='w', linewidth=0.5)
@@ -58,4 +58,12 @@ plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2
 plt.xlabel('Actual Values')
 plt.ylabel('Predicted Values')
 plt.title('Predictions vs Actual Values')
+plt.show()
+
+# Plot a histogram of the residual values
+residuals = y_test - y_pred
+plt.hist(residuals, bins=30)
+plt.xlabel('Residuals')
+plt.ylabel('Frequency')
+plt.title('Histogram of Residuals')
 plt.show()
